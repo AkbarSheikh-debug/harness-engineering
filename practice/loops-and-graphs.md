@@ -4,6 +4,8 @@ Most people meet agents as a conversation: you type, it works, you correct it, i
 
 There are three levels, and you should climb them one at a time.
 
+![Three levels: supervised, a loop, a graph; you move from being in the loop, to on it, to designing it](../assets/diagrams/three-levels.png)
+
 | Level | Who drives | Structure | You are… |
 |-------|-----------|-----------|----------|
 | **1. Supervised** | You, turn by turn | One agent, one session | In the loop |
@@ -16,13 +18,23 @@ One agent, one human, one session. Everything in the [guide](../guide/00-what-is
 
 **The signal to move up:** you notice your own contribution has become mechanical. "Run the tests." "Fix that." "Now the next one." If you could write your side of the conversation in advance, a script can say it.
 
+**The signal to stay:** you are still making judgment calls each turn. If your corrections are about *what the right thing is*, not *keep going*, the task is not ready to automate. Automating it will produce confident work in the wrong direction.
+
 ## Level 2: loop engineering
 
 A loop is an agent run inside a `while`, with a check deciding whether to go around again.
 
-![Maker and checker loop with a state file and an iteration cap](../assets/diagrams/maker-checker.svg)
+![Maker and checker loop with a state file and four ways out](../assets/diagrams/maker-checker.png)
 
 It has five parts. Leave any one out and the loop misbehaves in a predictable way.
+
+| Part | What it is | Without it |
+|------|-----------|------------|
+| A checkable **goal** | A condition a command can test | The loop cannot terminate |
+| A **state file** | What each fresh iteration reads first and updates last | Every iteration starts from zero |
+| A **maker** | The agent that does one small piece of work | Nothing happens |
+| A **checker** | An independent judge | The maker declares success immediately |
+| **Stop conditions** | Success, iteration cap, budget cap, no progress | An expensive overnight surprise |
 
 ### 1. A goal that can be checked
 
@@ -36,7 +48,12 @@ Changing behaviour. Renaming public functions. Files outside `src/billing/`.
 
 "Improve the code" cannot terminate. "Zero mypy errors in this directory" can.
 
-*Missing it:* the loop runs until the budget is gone, producing changes nobody asked for.
+| Cannot terminate | Can terminate |
+|------------------|---------------|
+| "Improve test coverage" | "Line coverage of `src/api/` is at least 85%, measured by `make coverage`" |
+| "Clean up the codebase" | "`ruff check .` reports zero errors" |
+| "Make it faster" | "`make bench` reports p95 under 200 ms" |
+| "Fix the bugs" | "Every test in `tests/regressions/` passes" |
 
 ### 2. A state file
 
@@ -58,7 +75,7 @@ Remaining: 23 mypy errors (was 61)
 - Checker feedback from iteration 3: do not add `# type: ignore`; fix the type
 ```
 
-*Missing it:* every iteration starts from zero and repeats the same mistakes.
+The "notes for the next iteration" section is where the loop *learns*. Without it, iteration 7 makes the same mistake iteration 3 was corrected for.
 
 ### 3. A maker
 
@@ -66,7 +83,8 @@ The agent that does the work. Its prompt is the same every iteration:
 
 ```text
 Read GOAL.md and LOOP_STATE.md. Do the next small piece of work toward the goal.
-Stay in scope. Update LOOP_STATE.md with what you did and what you learned. Then stop.
+Stay in scope. Run the check yourself before you stop.
+Update LOOP_STATE.md with what you did and what you learned. Then stop.
 ```
 
 Small pieces matter. An iteration that tries to finish everything behaves like the [under-finishing](failure-modes.md) failure.
@@ -75,9 +93,21 @@ Small pieces matter. An iteration that tries to finish everything behaves like t
 
 Something independent decides whether the goal is met. In order of preference:
 
-1. **A command.** `mypy --strict` exits 0 or it does not. Unarguable, free, instant.
-2. **A second agent with a rubric**, for things no command can judge. It gets the artifact and the criteria, not the maker's reasoning, and must give specific, actionable feedback.
-3. **A human**, sampled, for the highest-stakes judgments.
+| Checker | Cost | Trust | Use when |
+|---------|------|-------|----------|
+| **A command** (`mypy` exits 0) | Free, instant | Total | Always, if one exists |
+| **A second agent with a rubric** | A model call | Good, if calibrated | No command can judge it |
+| **A human**, sampled | Attention | Ground truth | The stakes are high |
+
+If the checker is an agent, give it the artifact and the criteria, not the maker's reasoning, and require specific, actionable feedback:
+
+```text
+You are reviewing a change you did not write. Criteria:
+(1) no `# type: ignore` comments were added;  (2) no function signature changed its meaning;
+(3) every changed file still passes its tests.
+Answer PASS or FAIL per criterion, with a file and line as evidence.
+If anything fails, say exactly what to change.
+```
 
 *Missing it:* the maker declares success on iteration one. A maker reviewing itself is the [premature victory](failure-modes.md) failure with extra steps.
 
@@ -98,33 +128,21 @@ for i in range(MAX_ITERATIONS):                 # hard cap
 
 Four exits: success, iteration cap, budget cap, and *no progress*. The last one is the one people forget. A loop that makes the same failed attempt fifteen times is burning money to tell you something it could have said on the third.
 
-*Missing it:* an expensive overnight surprise.
+Measuring progress needs a number: errors remaining, tests passing, features marked done. If the number has not improved for three iterations, stop and hand it to a person, with the state file as the report.
 
 ### What loops are good at
 
-- **Mechanical, checkable transformations.** Migrating a codebase, raising coverage, fixing a lint class.
-- **Work with a natural queue.** Process the next ticket, the next file, the next failing test.
-- **Iterating toward a measurable target.** A benchmark number, a bundle size.
-
-They are poor at work where "better" cannot be measured. There, keep a human on the checker's seat.
+| Good fit | Poor fit |
+|----------|----------|
+| Mechanical, checkable transformations: migrations, lint classes, type annotations | Work where "better" is a matter of taste |
+| A natural queue: the next ticket, file, or failing test | A single tightly coupled change |
+| Iterating toward a measurable target: coverage, a benchmark | Anything where each step needs a human decision |
 
 ## Level 3: graph engineering
 
 When one loop is not enough, several agents with different jobs are connected by code.
 
-```mermaid
-flowchart TD
-    S([Issue arrives]) --> P[Planner<br/>read-only]
-    P --> Q{Plan approved?}
-    Q -- human says no --> P
-    Q -- yes --> I[Implementer<br/>in a worktree]
-    I --> T{Tests pass?}
-    T -- no, under 3 tries --> I
-    T -- no, 3 tries --> H([Escalate to a human])
-    T -- yes --> R[Reviewer<br/>fresh context, rubric]
-    R -- changes requested --> I
-    R -- approved --> PR([Open pull request])
-```
+![A pipeline of planner, implementer and reviewer with two capped cycles and an escalation path](../assets/diagrams/agent-graph.png)
 
 ### The rules that keep a graph maintainable
 
@@ -142,9 +160,34 @@ flowchart TD
 
 **State lives in files.** What passes between nodes is a plan document, a diff, a results file. Never one agent's memory of a conversation. That makes every hand-off inspectable and every node re-runnable.
 
-**Every cycle has a cap.** Each backward edge needs a counter and an escape route to a human. An uncapped cycle between an implementer and a reviewer can run for hours.
+**Every cycle has a cap.** Each backward edge needs a counter and an escape route to a human. An uncapped cycle between an implementer and a reviewer can run for hours, with each side politely disagreeing.
 
 **Different context is the point.** A reviewer is useful because it has *not* seen the implementer's reasoning. Giving every node the full history defeats the purpose and multiplies the cost.
+
+### The whole thing is a small script
+
+A graph does not require a framework. This is the pipeline in the diagram:
+
+```python
+plan = run_node("planner", inputs=[issue], mode="read-only")
+if not human_approves(plan):
+    stop("plan rejected")
+
+for attempt in range(3):                                  # capped cycle 1
+    run_node("implementer", inputs=[plan, feedback], worktree=wt)
+    if run("make check", cwd=wt).returncode != 0:         # an edge: an exit code
+        feedback = last_test_output(wt)
+        continue
+    review = run_node("reviewer", inputs=[diff(wt)], mode="read-only")
+    if review["status"] == "approved":                    # an edge: a JSON field
+        open_pull_request(wt)
+        break
+    feedback = review["comments"]
+else:
+    escalate_to_human(wt)                                 # the exit for both cycles
+```
+
+Read the control flow: every decision is a return code, a field, or a person. No model chooses the next node.
 
 ### Common graph shapes
 
@@ -164,6 +207,14 @@ Graphs are seductive. A diagram with eight boxes looks like progress. Each box, 
 2. **Could a command do it instead of an agent?** A linter is cheaper than a reviewer.
 3. **Could the existing node do it with a better prompt or tool?**
 4. **How will I know if this node is helping?** If you cannot measure it with the methods in [evaluation](../guide/09-evaluation.md), you cannot justify it.
+
+| You are about to add… | First try… |
+|-----------------------|-----------|
+| A "planner" node | Asking the one agent to write a plan file before coding |
+| A "tester" node | Putting the test command in the instructions and a stop hook |
+| A "reviewer" node | A linter for the things the reviewer keeps catching |
+| A "memory manager" node | A progress file |
+| A "supervisor" model | A `for` loop |
 
 A reasonable path for most teams: one good supervised agent; then a maker loop with a mechanical checker; then a reviewer; and only then anything more elaborate.
 

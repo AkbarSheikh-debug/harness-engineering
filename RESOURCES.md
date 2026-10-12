@@ -43,6 +43,10 @@ Independent analyses cited in the teardowns:
 | [Agent Skills](https://agentskills.io) | The `SKILL.md` folder format for on-demand procedures |
 | [Model Context Protocol](https://modelcontextprotocol.io) | Connecting harnesses to external tool servers |
 
+## How the diagrams are made
+
+The diagrams are original drawings, written as code in `tools/sketch/` and rendered to PNG. They use [rough.js](https://roughjs.com) (MIT) for the hand-drawn strokes, and the [Kalam](https://fonts.google.com/specimen/Kalam) and [Comic Mono](https://github.com/dtinth/comic-mono-font) typefaces (both under open font licences).
+
 ## A note on accuracy
 
 The harness teardowns describe fast-moving projects as of October 2026. Details such as command names, mode names and defaults change between releases. Each teardown links to the primary source for every claim; where this guide and the source disagree, trust the source, and please open an issue so the guide can be corrected.

@@ -8,8 +8,8 @@ This page describes how to organise a repository so that an agent (and a new hum
 
 ## Why the repository, and not somewhere else
 
-| Knowledge lives in… | Can the agent read it? | Is it versioned with the code? | Does it go stale silently? |
-|---------------------|------------------------|--------------------------------|----------------------------|
+| Knowledge lives in… | Can the agent read it? | Versioned with the code? | Goes stale silently? |
+|---------------------|------------------------|--------------------------|----------------------|
 | People's heads | No | No | Yes |
 | Chat threads | No | No | Yes |
 | A wiki | Only with a connector | No | Yes |
@@ -24,22 +24,37 @@ Almost every harness loads one Markdown file from the repository root at startup
 
 The mistake is to treat that file as the manual. It becomes long, it costs tokens on every turn, and nobody can keep it current. Treat it as a **table of contents** instead.
 
-![A short AGENTS.md pointing to architecture, testing, skills and progress files](../assets/diagrams/instruction-map.svg)
+![A short AGENTS.md pointing to architecture, testing, skills and progress files](../assets/diagrams/map-not-manual.png)
 
 A good entry file has five short sections:
 
-1. **What this is.** One paragraph: purpose, stack, entry points.
-2. **How to run and verify.** The exact commands. This is the most valuable section.
-3. **Hard rules.** A handful of invariants that must never be violated, each with a reason.
-4. **Where things are.** A sketch of the directory layout.
-5. **Where to read more.** Pointers to deeper documents, with a line on when each is relevant.
+| Section | Contains | Why it earns its place |
+|---------|----------|------------------------|
+| **What this is** | One paragraph: purpose, stack, entry points | Orientation in ten seconds |
+| **How to run and verify** | The exact commands | The single most valuable section |
+| **Hard rules** | A handful of invariants, each with a reason | What must never break |
+| **Where things are** | A sketch of the directory layout | Saves a dozen exploratory tool calls |
+| **Where to read more** | Pointers to deeper documents, with *when* each is relevant | The map itself |
 
 Aim for about a hundred lines. When it grows past that, move detail into `docs/` and leave a pointer. A starter is in [`templates/AGENTS.md`](https://github.com/AkbarSheikh-debug/harness-engineering/blob/main/templates/AGENTS.md).
+
+### Pointers need a "when"
+
+A bare list of links is not much of a map. Compare:
+
+```markdown
+## Docs                              ## Read more, when relevant
+- docs/architecture.md               - Changing how services talk to each other → docs/architecture.md
+- docs/testing.md                    - Writing or fixing a test → docs/testing.md
+- docs/payments.md                   - Touching anything under billing/ → docs/payments.md (read it first)
+```
+
+The right-hand version tells the agent *which situation* each document is for, so it opens the right one at the right moment and none of the others.
 
 ## A layout that works
 
 ```text
-AGENTS.md                 the map (≈100 lines)
+AGENTS.md                 the map (about 100 lines)
 ARCHITECTURE.md           how the system fits together, and why
 docs/
   testing.md              what "verified" means here; how to run each kind of test
@@ -55,9 +70,34 @@ feature_list.json         what is done and what is not, verified by tests
 
 You do not need all of it on day one. Start with `AGENTS.md` and `docs/testing.md`, and add a file the first time an agent gets something wrong for lack of it.
 
+| File | Add it when… |
+|------|--------------|
+| `docs/testing.md` | An agent says "done" without running the right thing |
+| `ARCHITECTURE.md` | An agent puts code in the wrong layer |
+| `docs/decisions/` | An agent "fixes" a deliberate choice |
+| `docs/plans/active/` | Work spans more than one session |
+| A skill | You explain the same procedure a second time |
+
+### Decision records
+
+One of the highest-value small habits. When you make a choice that an outsider would question, write five lines:
+
+```markdown
+# 0007: Stay on payments SDK v3
+
+Date: 2026-01-09
+Decision: Do not upgrade to v4.
+Why: v4 changes the webhook signature scheme; our verifier and three partners depend on v3.
+Revisit when: all partners have migrated (tracked in issue 412).
+```
+
+Without it, a helpful agent will upgrade the dependency, because upgrading dependencies looks like an improvement. With it, a pointer in `AGENTS.md` ("before changing a dependency, check `docs/decisions/`") prevents the incident.
+
 ## Write invariants, not instructions
 
 There are two ways to tell an agent how to work.
+
+![Micromanaging the route on the left; stating a rule with its reason and a check on the right](../assets/diagrams/rule-reason-check.png)
 
 **Micromanaging the implementation:**
 
@@ -77,7 +117,13 @@ A useful format for each rule:
   **Check.** `make lint` fails on float arithmetic in `billing/`.
 ```
 
-Rule, reason, check. The reason lets the model handle cases you did not foresee. The check means you do not depend on it remembering.
+| Part | What it buys you |
+|------|------------------|
+| **Rule** | The thing that must stay true |
+| **Why** | Lets the model handle a case you did not foresee, because it knows what is being protected |
+| **Check** | You no longer depend on the model remembering |
+
+A rule with no check is a hope. A check with no stated rule is a mystery failure. You want both.
 
 ## Make verification a first-class citizen
 
@@ -93,9 +139,21 @@ The single highest-value thing you can write down is how to tell whether work is
 
 With this in place, "done" stops being a feeling. Every agent and every human runs the same command. Go further where you can:
 
-- **Architectural rules as lints.** "The UI layer may not import from the database layer" is a rule a script can enforce and an agent can read the error from.
-- **Feedback the agent can query.** Logs, metrics and traces from a locally running instance let it check behaviour, not just compilation.
-- **Turn review comments into rules.** When a reviewer corrects the same thing twice, encode it as a lint or a line in the docs. The correction then applies to every future run.
+**Speed matters.** A check that takes twenty seconds gets run after every edit; one that takes twenty minutes gets run once, at the end, when the mistakes have compounded. Invest in a fast tier.
+
+**Error messages are instructions.** A lint that says `layer violation` teaches nothing. One that says `ui/ may not import from db/; move this query into services/orders.py` tells the agent exactly what to do. Since you write custom lints, you can write the remediation into the message.
+
+**Architectural rules as lints.** "The UI layer may not import from the database layer" is a rule a script can enforce and an agent can read the error from. Taste, once encoded, applies to every line an agent ever writes.
+
+**Feedback the agent can query.** Logs, metrics and traces from a locally running instance let it check behaviour, not just compilation. An agent that can start the app, call the endpoint and read the log is working from evidence.
+
+**Turn review comments into rules.** When a reviewer corrects the same thing twice, encode it as a lint or a line in the docs. The correction then applies to every future run.
+
+```text
+reviewer corrects it once     →  fix the code
+reviewer corrects it twice    →  write it in docs/conventions.md
+reviewer corrects it a third  →  make it a lint that fails the build
+```
 
 ## Keep it honest
 
@@ -104,7 +162,8 @@ Documentation an agent trusts and that is wrong is worse than none. Some mainten
 - **Change docs in the same commit as code.** Add it to the definition of done.
 - **Lint the docs.** Check for dead links, commands that no longer exist, and files nobody owns.
 - **Prefer pointing to restating.** "See the schema in `db/models.py`" cannot drift; a copied table can.
-- **Garbage-collect.** Periodically have an agent audit the docs against the code and open a pull request with corrections.
+- **Generate what can be generated.** A database schema document produced by a script is always current.
+- **Garbage-collect.** Periodically have an agent audit the docs against the code and open a small pull request with corrections.
 - **Delete boldly.** A short accurate file beats a long doubtful one.
 
 ## A test for your repository
@@ -117,7 +176,7 @@ Hand the repo to a capable engineer who has never seen it, with no access to you
 4. Find where a given feature lives?
 5. Know when their change is finished?
 
-Every "no" is a gap an agent will fall into.
+Every "no" is a gap an agent will fall into. You can run this test cheaply: start a fresh agent session in a read-only mode and ask it those five questions. Where it guesses or gets it wrong, your documentation has a hole.
 
 ## Sources and further reading
 

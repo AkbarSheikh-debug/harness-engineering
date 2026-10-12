@@ -4,56 +4,31 @@
 
 **Maintainer:** DeepSeek · **Repository:** [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) · **Command:** `dsh` · **Language:** TypeScript · **Licence:** MIT
 
-> Snapshot: October 2026. The project describes itself as a **developer preview** with compatibility-breaking changes expected. Read its safety notice before running it, and treat everything below as a description of the architecture at the time of writing.
+> Snapshot: October 2026. The project describes itself as a **developer preview** with compatibility-breaking changes expected. Read its safety notice before running it, and treat everything below as a description of the architecture at the time of writing, taken from the repository's `docs/` folder.
 
 ## In one paragraph
 
-Pi minimises the core. DeepSeek Harness (`dsh`) removes it. The project is built on a plugin framework called Cordis, in which plugins contribute services, typed events and reversible effects to a shared context. The architecture document puts it plainly: there is "no privileged core to patch", and you extend the system "by mounting a plugin beside the others". If the other harnesses in this section are applications, this one is closer to an operating system for agents.
+Pi minimises the core. DeepSeek Harness (`dsh`) removes it. The project is built on a plugin framework called Cordis, in which plugins contribute services, typed events and reversible effects to a shared context. The architecture document says, in effect, that there is no special core to patch: you extend the system by mounting another plugin beside the existing ones, and a plugin's registrations unwind when it is unloaded. If the other harnesses in this section are applications, this one is closer to an operating system for agents.
 
 ## Three ideas to understand
 
-### 1. Capability seams
+### 1. The loop as an event pipeline
 
-A **seam** is a swappable capability with three roles:
+Instead of a fixed "call model, run tools" function, a turn is a sequence of named events.
 
-```text
-Service Definition   declares the interface      (e.g. "a filesystem")
-        │
-Service Provider     implements it               (local disk, remote sandbox, …)
-        │
-Consumer             uses it                     (usually a model-facing tool)
-```
+![DeepSeek Harness's turn drawn as a pipeline of named events, with durable events and live extension points marked](../assets/diagrams/dsh-pipeline.png)
 
-The model sees the same file tools whether the provider is your local disk or a remote sandbox. Swap the provider and the whole execution environment moves, with no change to the tool surface. The documentation notes that filesystem and subprocess providers share one execution world, so pointing them at a remote sandbox moves the shell, terminals and language servers along with them.
+Two vocabulary points from the docs are worth adopting anywhere: a **step** is one model request plus the tools it calls, and a **turn** is zero or more steps, opening before its first input is claimed and closing once nothing is owed.
 
-This answers a question every harness designer eventually meets: should the agent depend on **concrete tools** or on **capability interfaces**? The seam design chooses interfaces, and gets a pluggable environment as a result.
+The events fall into three groups:
 
-### 2. The loop as an event pipeline
+| Group | Examples | Use it to |
+|-------|----------|-----------|
+| **Session events** (durable) | `turn/*`, `step/*`, `user/message`, `assistant/message`, `tool/call`, `tool/result` | Record a fact that must survive a reload |
+| **Agent events** (live) | `agent/pre-step`, `agent/request`, `agent/turn-stopping` | Observe or intercept work in flight |
+| **Capability events** | `tools/pre-execute`, `tools/execute`, `tools/post-execute`, `fs/*` | Attach policy to a capability without touching the loop |
 
-Instead of a fixed "call model, run tools" function, a turn is a sequence of named events. Simplified from the architecture documentation:
-
-```text
-turn/start
-  assemble prompt sections + tool schemas
-  agent/pre-step          ← accept, rewrite or reject the input
-  step/start
-  agent/request           ← inspect or modify the model request
-  llm/stream              ← the model call
-  assistant/message
-  tool/call
-    tools/pre-execute     ← permission, policy, guards
-    tools/execute
-    tools/post-execute
-  tool/result
-  step/end
-  (repeat while tools owe another request)
-agent/turn-stopping       ← decide whether the turn may end
-turn/end
-```
-
-Two vocabulary points from the docs are worth adopting anywhere: a **step** is one model request plus the tools it calls, and a **turn** is zero or more steps.
-
-The events fall into three groups: durable **session events** that are written to the log; live **agent events** for observing or intercepting work in flight; and **capability events** that attach policy to a seam. The consequence is that most features need no change to the loop:
+The consequence is that most features need no change to the loop:
 
 | You want to… | Attach to… |
 |--------------|-----------|
@@ -66,13 +41,75 @@ The events fall into three groups: durable **session events** that are written t
 
 Compare this with [chapter 3](../guide/03-guardrails.md), where the gate is a function called before execution. Same idea, generalised: *every* stage is a place something can stand.
 
+### 2. Capability seams
+
+A **seam** is a swappable capability with three roles.
+
+![A capability seam: consumers the model sees, one service definition, and several interchangeable providers](../assets/diagrams/dsh-seam.png)
+
+| Role | What it is | Filesystem example |
+|------|-----------|--------------------|
+| **Service definition** | Declares the interface | "A filesystem" |
+| **Service provider** | Implements it | Local disk, a remote sandbox |
+| **Consumer** | Uses it; usually a model-facing tool | `read_file`, `edit_file` |
+
+The model sees the same file tools whether the provider is your local disk or a remote sandbox. Swap the provider and the whole execution environment moves, with no change to the tool surface. The documentation notes that filesystem and subprocess providers share one execution world, so pointing them at a remote sandbox moves the shell, terminals and language servers along with them.
+
+This answers a question every harness designer eventually meets: should the agent depend on **concrete tools** or on **capability interfaces**? The seam design chooses interfaces, and gets a pluggable environment as a result. The docs are strict about it: one role on its own is not a seam, and adding a capability means designing all three.
+
 ### 3. "Model-visible means logged"
 
-The session log is append-only, and the model's view of history is **derived from the log** rather than stored beside it. On top of that the project states an invariant:
-
-> Every model request must be reconstructable from the log. New model-visible inputs require session events.
+The session log is append-only, and the model's view of history is **derived from the log** rather than stored beside it. On top of that the project states an invariant, which paraphrased says: every model request must be reconstructable from the log, and any new input the model can see needs a session event.
 
 This turns observability from a feature into a constraint. If something could reach the model without being logged, that is a bug by definition. Fork, resume, transcripts, telemetry and persistence all derive from the same record. It is the strongest form of the advice in [chapter 6](../guide/06-durability.md) and [chapter 9](../guide/09-evaluation.md).
+
+## A closer look: one tool call, end to end
+
+The repository documents its tool execution pipeline as a generated graph. Reduced to essentials, a single call passes through these stages:
+
+```text
+assistant message contains a tool call
+  → session event  tool/call          logged BEFORE anything runs
+  → tools/pre-execute                 hooks · permission · sandbox policy
+        deny  → the tool body is skipped
+        ask   → one-shot approval prompt
+  → registered guards                 may only deny or abstain
+  → tools/execute                     timeout · retry · metrics, wrapped around the tool body
+        the tool body runs (file writes pass through their own intent checks)
+  → tools/post-execute                accept · block · replace · add context
+  → session event  tool/result        the single outcome the model sees
+```
+
+Three details map directly onto the guide:
+
+- **The call is logged before execution.** That is the write-ahead rule from [chapter 6](../guide/06-durability.md).
+- **A denied call still produces a result.** The tool body is skipped, and the model receives an outcome it can react to.
+- **Exceptions are normalised into error results** instead of escaping the pipeline: errors as messages, again.
+
+### Approval that fails closed
+
+The approval subsystem defines a small, closed set of outcomes:
+
+| Outcome | Meaning | Effect |
+|---------|---------|--------|
+| `allowed-once` | Granted for this specific action only | The call proceeds |
+| `rejected` | A person or policy said no | Deny |
+| `cancelled` | The request was withdrawn | Deny |
+| `unavailable` | Nobody could answer | **Deny** |
+
+The last row is the design decision. A missing, crashing or non-conforming approver becomes "unavailable", and unavailable means deny. A per-session policy of `ask` or `never` decides whether an approver is consulted at all. This is the "fail closed" property from [chapter 3](../guide/03-guardrails.md), encoded in a type.
+
+### Compaction as a lock
+
+Compaction is itself a seam (a definition, a backend, a `/compact` command). It records three log-only events:
+
+```text
+compaction/start      acquires a lock, recorded in the log
+compaction/summary    the summary and exactly which earlier events it replaces
+compaction/end        releases the lock
+```
+
+The lock brackets the *whole* operation and is released last. So a crash in the middle leaves a `start` with no matching `end`: an orphan that is detectable on the next load, instead of a fold that looks complete and is not. None of the three events is itself visible to the model; the summary reaches it as a separate message.
 
 ## The nine parts
 
@@ -80,11 +117,11 @@ This turns observability from a feature into a constraint. If something could re
 |------|---------------------|
 | **Loop** | A default driver plugin implementing an `Agent` interface; replaceable |
 | **Tools** | A scoped registry with a guarded execution pipeline; tools are consumers of capability seams |
-| **Guardrails** | Sandbox backends and approval policy ship in the base bundle and attach at the pre-execute event |
+| **Guardrails** | Sandbox backends and approval policy ship in the base bundle and attach at the pre-execute stage; approval fails closed |
 | **Context** | Prompt sections and tool schemas are assembled each step; history is projected from the log |
-| **Memory & skills** | Not a fixed convention; supplied by plugins and injected through the documented stages |
+| **Memory & skills** | Not a fixed convention; supplied by plugins and injected through documented stages |
 | **Durability** | Append-only, versioned session event log with explicit migrations and pluggable storage |
-| **Delegation** | A sub-agent seam: a provider can be a fresh child agent or a delegated turn in another product. Agent teams are experimental |
+| **Delegation** | A sub-agent seam with declared capabilities (depth limit, tool filter, output schema, persona): a provider can be a fresh local child or a run in another product. Agent teams are experimental |
 | **Orchestration** | Named **profiles** selected at launch: a web app, a one-shot headless runner, an SDK server, and an automation server |
 | **Evaluation** | The logging invariant, plus a telemetry seam |
 
@@ -98,7 +135,10 @@ A running `dsh` is a plugin tree composed at boot from ordered layers. A **profi
 2. **Depend on capabilities, not tools.** Define "filesystem" once and let local and remote implementations compete.
 3. **Derive the model's view from the log.** One source of truth; resume, fork and replay follow.
 4. **State observability as an invariant** and assert it at runtime.
-5. **Distinguish durable events from live ones.** Decide deliberately which facts must survive a restart.
+5. **Log the call before you run it**, and always produce a result, even for a denied call.
+6. **Make "nobody answered" mean "no".**
+7. **Bracket multi-step operations with start and end records**, so an interruption is detectable.
+8. **Distinguish durable events from live ones.** Decide deliberately which facts must survive a restart.
 
 ## What it costs
 
@@ -114,5 +154,5 @@ Claude Code, Codex and Pi each optimise a harness around a particular agent. Dee
 
 - [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness): README (developer preview status, how to run)
 - [Architecture document](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md): Cordis, profiles and bundles, events, turn flow, session log, capability seams, and the table of where new behaviour goes
-- Supporting docs in the same repository: Cordis primer, capability seams, tool execution pipeline, session subsystem
+- In the same `docs/` folder: `tool-execution-pipeline.md`, `capability-seams.md`, and under `subsystems/`: `approval.md`, `compaction.md`, `subagent.md`, `session.md`
 - [Breaking down DeepSeek Harness's design](https://github.com/walkinglabs/learn-harness-engineering), from the *Learn Harness Engineering* course

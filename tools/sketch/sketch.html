@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>loading</title>
+<!-- One sheet, one diagram: sketch.html?d=<id>   |   sketch.html?audit=1 lists layout problems -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=block">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/comic-mono@0.0.1/index.css">
+<style>
+  html, body { margin: 0; background: #fffdf7; overflow: hidden; }
+  svg { display: block; width: 1920px; height: 1080px; }
+  #report { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<svg id="c" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"></svg>
+<pre id="report"></pre>
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script src="lib.js"></script>
+<script src="d0-foundations.js"></script>
+<script src="d1-loop.js"></script>
+<script src="d2-tools.js"></script>
+<script src="d3-guardrails.js"></script>
+<script src="d4-context.js"></script>
+<script src="d5-memory.js"></script>
+<script src="d6-durability.js"></script>
+<script src="d7-many-agents.js"></script>
+<script src="d9-evaluation.js"></script>
+<script src="dh-harnesses.js"></script>
+<script src="dp-practice.js"></script>
+<script>boot();</script>
+</body>
+</html>
