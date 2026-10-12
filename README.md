@@ -4,7 +4,7 @@
 
 A model can only read text and write text. Everything that makes Claude Code, Codex, Pi or Hermes feel like a colleague who edits files, runs tests and recovers from mistakes lives in the code *around* the model. That code is the **harness**, and designing it well is its own engineering discipline.
 
-This guide takes the harness apart one layer at a time, with 59 hand-drawn diagrams, short runnable code, worked numbers and teardowns of real open-source harnesses.
+This guide takes the harness apart one layer at a time, with 75 hand-drawn diagrams, short runnable code, worked numbers and teardowns of real open-source harnesses.
 
 ![Everything around the model is harness: nine parts drawn as rings around the model](assets/diagrams/harness-anatomy.png)
 
@@ -46,7 +46,7 @@ The same nine questions, answered by five real projects, plus the model-access l
 | [DeepSeek Harness](harnesses/deepseek-harness.md) | Everything is a plugin, including the loop |
 | [OpenRouter](harnesses/openrouter.md) | Not a harness: the routing layer that lets one harness reach many models |
 
-Start with [how to compare them](harnesses/README.md).
+Start with [how to compare them](harnesses/README.md). Hermes Agent and DeepSeek Harness each have a five-page deep dive that goes through the project's own documentation subsystem by subsystem.
 
 ## Working with agents
 
@@ -76,7 +76,7 @@ harnesses/     teardowns of real harnesses
 practice/      working methods for agent-driven projects
 examples/      a runnable single-file harness
 templates/     starter AGENTS.md, progress file and feature list
-assets/        59 hand-drawn diagrams (PNG, 1920x1080, slide-ready)
+assets/        75 hand-drawn diagrams (PNG, 1920x1080, slide-ready)
 tools/         the diagram sources (tools/sketch/) and the renderer (tools/render.py)
 ```
 

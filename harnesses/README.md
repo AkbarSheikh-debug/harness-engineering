@@ -22,6 +22,8 @@ And one page that is not a harness at all:
 
 - [OpenRouter](openrouter.md): the model-access layer. It is here because every harness needs a provider, and choosing one is a harness design decision.
 
+Two of these have their own multi-page deep dives, built from each project's documentation: [Hermes Agent](hermes.md) (five pages) and [DeepSeek Harness](deepseek-harness.md) (five pages).
+
 ## The same nine questions
 
 | Part | Claude Code | Codex | Pi | Hermes | DeepSeek Harness |

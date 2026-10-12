@@ -18,7 +18,17 @@
   - [Codex](/harnesses/codex.md)
   - [Pi](/harnesses/pi.md)
   - [Hermes Agent](/harnesses/hermes.md)
+    - [Inside the agent loop](/harnesses/hermes/loop.md)
+    - [Prompt, cache, compression](/harnesses/hermes/context.md)
+    - [Memory, skills, learning loop](/harnesses/hermes/learning.md)
+    - [Tools, backends, security](/harnesses/hermes/tools-and-security.md)
+    - [Gateway, cron, delegation](/harnesses/hermes/automation.md)
   - [DeepSeek Harness](/harnesses/deepseek-harness.md)
+    - [Cordis, profiles and scope](/harnesses/deepseek-harness/plugins.md)
+    - [Agents, inbox and the turn](/harnesses/deepseek-harness/turn.md)
+    - [Tools, approval, sandbox](/harnesses/deepseek-harness/tools-and-safety.md)
+    - [Event log and compaction](/harnesses/deepseek-harness/sessions.md)
+    - [Sub-agents, teams, automation](/harnesses/deepseek-harness/agents.md)
   - [OpenRouter](/harnesses/openrouter.md)
 
 - Working with agents

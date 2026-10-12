@@ -10,6 +10,20 @@
 
 Pi minimises the core. DeepSeek Harness (`dsh`) removes it. The project is built on a plugin framework called Cordis, in which plugins contribute services, typed events and reversible effects to a shared context. The architecture document says, in effect, that there is no special core to patch: you extend the system by mounting another plugin beside the existing ones, and a plugin's registrations unwind when it is unloaded. If the other harnesses in this section are applications, this one is closer to an operating system for agents.
 
+## Go deeper
+
+This page is the overview. Five deep-dive pages go through the repository's own documentation subsystem by subsystem, each with its own diagrams:
+
+| # | Page | Covers |
+|---|------|--------|
+| 1 | [Cordis, profiles and scope](deepseek-harness/plugins.md) | The plugin framework in five ideas, dispatch modes, how a running `dsh` is layered, per-agent scope |
+| 2 | [Agents, the inbox and the turn](deepseek-harness/turn.md) | Creating and owning agents, follow-up versus steer, the turn step by step, cancellation |
+| 3 | [Tools, approval and sandbox](deepseek-harness/tools-and-safety.md) | Tool definitions, the fixed pipeline, fail-closed approval, sandbox modes, read-before-write, code mode |
+| 4 | [The event log, persistence and compaction](deepseek-harness/sessions.md) | Surface and log-only events, write-behind persistence, crash recovery, format versions, compaction as a lock |
+| 5 | [Sub-agents, teams and automation](deepseek-harness/agents.md) | The sub-agent seam, agent teams, model-written workflows, goals, schedules, webhooks, skills, MCP |
+
+![Cordis in five ideas](../assets/diagrams/dsh-cordis.png)
+
 ## Three ideas to understand
 
 ### 1. The loop as an event pipeline

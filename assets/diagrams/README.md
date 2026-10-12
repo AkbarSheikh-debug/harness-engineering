@@ -1,6 +1,6 @@
 # Diagram gallery
 
-Every diagram in the guide, in one place: 59 hand-drawn sheets at 1920×1080, sized for slides as well as for reading.
+Every diagram in the guide, in one place: 75 hand-drawn sheets at 1920×1080, sized for slides as well as for reading.
 
 They are drawn in code with [rough.js](https://roughjs.com) and rendered to PNG by a headless browser, so you can change one and regenerate it:
 
@@ -141,6 +141,42 @@ Each diagram is a short function in [`tools/sketch/`](https://github.com/AkbarSh
 ![Capability seams](dsh-seam.png)
 
 ![One narrow door to the model](provider-layer.png)
+
+## Hermes Agent, in depth
+
+![Hermes: one agent, many front doors](hermes-architecture.png)
+
+![One Hermes turn, step by step](hermes-turn.png)
+
+![A prompt built so the cache survives](hermes-prompt-tiers.png)
+
+![Two compressors, four phases](hermes-compression.png)
+
+![Three kinds of memory, three prices](hermes-memory-stores.png)
+
+![Between a command and your machine](hermes-approval.png)
+
+![A script instead of ten turns](hermes-execute-code.png)
+
+![From a chat message to an agent, and back](hermes-gateway.png)
+
+## DeepSeek Harness, in depth
+
+![Cordis in five ideas](dsh-cordis.png)
+
+![A running dsh is a stack of layers](dsh-profiles.png)
+
+![Talking to a running agent: the inbox](dsh-inbox.png)
+
+![One tool call, start to finish](dsh-tool-pipeline.png)
+
+![Two knobs, bundled into presets](dsh-permissions.png)
+
+![Two ways to show tools to a model](dsh-ptc.png)
+
+![The log is the source. Everything else is a view.](dsh-event-log.png)
+
+![Beyond one agent: four optional capabilities](dsh-agents.png)
 
 ## Working with agents
 

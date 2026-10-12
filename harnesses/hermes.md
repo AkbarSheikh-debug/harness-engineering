@@ -12,6 +12,20 @@ Most harnesses in this guide are coding tools you open in a project. Hermes is c
 
 ![Hermes: a ring of do a task, write a skill, skill on the shelf, use it next time, refine it; with two invariants on sticky notes](../assets/diagrams/hermes-loop.png)
 
+## Go deeper
+
+This page is the overview. Five deep-dive pages take Hermes apart subsystem by subsystem, each with its own diagrams:
+
+| # | Page | Covers |
+|---|------|--------|
+| 1 | [Inside the agent loop](hermes/loop.md) | The architecture, one turn step by step, three wire formats, interrupts, budgets and fallback |
+| 2 | [Prompt, cache and compression](hermes/context.md) | The three prompt tiers, cache breakpoints, two compressors and four phases, micro-compaction |
+| 3 | [Memory, skills and the learning loop](hermes/learning.md) | Bounded memory files, session search, self-written skills, the curator |
+| 4 | [Tools, backends and security](hermes/tools-and-security.md) | Self-registering tools, tool search, programmatic tool calling, the eight security layers |
+| 5 | [Gateway, cron and delegation](hermes/automation.md) | Messaging platforms, authorisation and pairing, scheduled jobs, sub-agents, session storage |
+
+![Hermes: five entry points feed one agent class, which uses a prompt builder, provider resolution and tool dispatch](../assets/diagrams/hermes-architecture.png)
+
 ## Two invariants
 
 The project's contributor guide names two rules that shape almost every decision. They are some of the clearest statements of harness design principles in any open-source project.
