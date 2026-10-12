@@ -1,0 +1,30 @@
+{
+  "_rules": [
+    "Set passes to true only after the verify command has actually succeeded.",
+    "Do not edit a description or a verify command to make a feature pass; raise it with a human instead.",
+    "Work on one feature at a time, and commit when it passes."
+  ],
+  "features": [
+    {
+      "id": "F001",
+      "description": "A new user can register with an email and a password",
+      "verify": "pytest tests/e2e/test_register.py::test_register_success",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "F002",
+      "description": "Registering with an email that already exists shows a clear error and creates no account",
+      "verify": "pytest tests/e2e/test_register.py::test_duplicate_email",
+      "depends_on": ["F001"],
+      "passes": false
+    },
+    {
+      "id": "F003",
+      "description": "A registered user can log in and sees their name in the header",
+      "verify": "pytest tests/e2e/test_login.py::test_login_shows_name",
+      "depends_on": ["F001"],
+      "passes": false
+    }
+  ]
+}

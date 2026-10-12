@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harness Engineering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual, from-first-principles guide to harness engineering: the loop, tools, guardrails, context, memory, durability, delegation, orchestration and evaluation that turn a language model into an agent.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --theme-color: #0f766e;
+      --ink: #1c2333;
+      --muted: #5b6577;
+      --paper: #fbfaf6;
+      --edge: #e6e0d3;
+    }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    .markdown-section { max-width: 880px; padding: 34px 28px 60px; }
+    .markdown-section h1 { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.6rem; }
+    .markdown-section h2 { font-size: 1.5rem; font-weight: 750; margin-top: 2.6rem; padding-top: 0.4rem; }
+    .markdown-section h3 { font-size: 1.15rem; margin-top: 1.9rem; }
+    .markdown-section p, .markdown-section li { line-height: 1.75; font-size: 16.5px; }
+    .markdown-section strong { color: var(--ink); }
+    .markdown-section a { color: var(--theme-color); font-weight: 600; text-decoration: none; }
+    .markdown-section a:hover { text-decoration: underline; }
+    .markdown-section img { display: block; margin: 1.6rem auto; max-width: 100%; height: auto; border-radius: 18px; box-shadow: 0 6px 22px rgba(28, 35, 51, 0.07); }
+    .markdown-section table { display: table; width: 100%; font-size: 15px; border-radius: 10px; overflow: hidden; }
+    .markdown-section th { background: #f1efe8; text-align: left; }
+    .markdown-section tr:nth-child(2n) { background: #fbfaf6; }
+    .markdown-section td, .markdown-section th { border-color: var(--edge); padding: 9px 13px; }
+    .markdown-section blockquote { border-left: 4px solid var(--theme-color); background: #eef8f6; color: var(--ink); border-radius: 0 10px 10px 0; padding: 12px 20px; margin: 1.6rem 0; }
+    .markdown-section blockquote p { margin: 0.35em 0; }
+    .markdown-section code { background: #f1efe8; color: #7c3a06; border-radius: 5px; font-size: 0.86em; padding: 2px 6px; }
+    .markdown-section pre { background: #1c2333; border-radius: 12px; padding: 0 0.4rem; }
+    .markdown-section pre > code { background: transparent; color: #e6e9f0; font-size: 13.5px; line-height: 1.65; padding: 1.3em 12px; }
+    .markdown-section pre::after { color: #8b95a8; }
+    .token.comment { color: #8b95a8; }
+    .token.string, .token.attr-value { color: #9ad9a4; }
+    .token.keyword, .token.boolean { color: #f0a868; }
+    .token.function, .token.class-name { color: #8ec5ff; }
+    .token.number, .token.property { color: #e6b3ff; }
+    .token.operator, .token.punctuation { color: #c9d0dc; }
+    .sidebar { background: var(--paper); border-right: 1px solid var(--edge); padding-top: 26px; }
+    .sidebar .app-name-link { font-weight: 800; font-size: 1.25rem; color: var(--ink); }
+    .sidebar > h1 { margin-bottom: 0.6rem; }
+    .sidebar-nav > ul > li > p { font-weight: 800; color: var(--ink); text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.09em; margin: 1.4em 0 0.3em; }
+    .sidebar ul li a { color: #3b4458; font-size: 14.5px; }
+    .sidebar ul li.active > a { color: var(--theme-color); font-weight: 700; border-right: 3px solid var(--theme-color); }
+    .search input { border-radius: 8px !important; border: 1px solid var(--edge) !important; }
+    .docsify-pagination-container { border-top: 1px solid var(--edge); margin-top: 3.2rem; }
+    .pagination-item-title { color: var(--theme-color); font-weight: 700; }
+    .mermaid { text-align: center; margin: 1.6rem 0; }
+    .app-nav { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <!-- Static site: docsify renders the repository's Markdown in the browser, so there is no build step. -->
+  <div id="app">Loading…</div>
+  <script>
+    window.$docsify = {
+      name: 'Harness Engineering',
+      repo: 'AkbarSheikh-debug/harness-engineering',
+      homepage: 'README.md',
+      loadSidebar: true,
+      alias: { '/.*/_sidebar.md': '/_sidebar.md' },
+      subMaxLevel: 2,
+      auto2top: true,
+      relativePath: true,
+      themeColor: '#0f766e',
+      search: { placeholder: 'Search the guide', noData: 'Nothing found', depth: 3 },
+      pagination: { crossChapter: true, crossChapterText: true },
+      copyCode: { buttonText: 'Copy', successText: 'Copied' },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/zoom-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
+  <script>mermaid.initialize({ startOnLoad: false, theme: 'neutral' });</script>
+</body>
+</html>
